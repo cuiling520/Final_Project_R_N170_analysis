@@ -127,14 +127,13 @@ $(document).ready(function () {
 
 <div id="executive-summary" class="section level2">
 <h2>Executive Summary</h2>
-<p>Dataset is from this term’s EEG course, 11 participants’ N170 data included. Data was recorged from classic face recognition experiment, which has 2 variables and 4 conditions: <code>gender (female vs. male)</code> and <code>face orientation (upright vs. inverted)</code>.</p>
+<p>Dataset is from this term’s EEG course, 11 participants’ N170 data included. Data was recorged from classic face recognition experiment, which has 2 variables and 4 conditions: <code>face gender (female vs. male)</code> and <code>face orientation (upright vs. inverted)</code>.</p>
+<p>Identify the peak as the most negative point at both sides, and measure the <em>latency</em> of this peak. The <em>amplitude</em> was measured as the average voltage within the 120-220 time window.</p>
 <p>Brain region was used as a constrain to measure the N170 over the areas where it is expected to occur:<br />
 * Left: 58 + 59 + 65 + 69<br />
-* Right: 89 + 90 + 91 + 96<br />
-(Average across these channels to make sure that individual variability is taken into account)</p>
-<p>Identify the peak as the most negative point at both sides, and measure the <em>latency</em> of this peak. The <em>amplitude</em> was measured as the average voltage within the 120-220 time window.</p>
-<p>Mainly, an ANOVA would be run separately on the <em>latency</em> and the <em>amplitude</em> of the N170 using:<br />
-* hemisphere (left, right),<br />
+* Right: 89 + 90 + 91 + 96</p>
+<p>So, firstly, an average across these channels to make sure that individual variability is taken into account.</p>
+<p>Secondly and mainly, an ANOVA would be run separately on the <em>latency</em> and the <em>amplitude</em> of the N170 using: * hemisphere (left, right),<br />
 * gender (male, female), and<br />
 * face orientation (upright, inverted)<br />
 as within-subject factors.</p>

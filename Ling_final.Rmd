@@ -17,16 +17,17 @@ library(gplots) # plot means with error bar
 
 ## Executive Summary   
 
-Dataset is from this term's EEG course, 11 participants' N170 data included. Data was recorged from classic face recognition experiment, which has 2 variables and 4 conditions: `gender (female vs. male)` and `face orientation (upright vs. inverted)`.     
+Dataset is from this term's EEG course, 11 participants' N170 data included. Data was recorged from classic face recognition experiment, which has 2 variables and 4 conditions: ` face gender (female vs. male)` and `face orientation (upright vs. inverted)`.     
+
+Identify the peak as the most negative point at both sides, and measure the *latency* of this peak. The *amplitude* was measured as the average voltage within the 120-220 time window.     
 
 Brain region was used as a constrain to measure the N170 over the areas where it is expected to occur:  
   * Left: 58 + 59 + 65 + 69  
-  * Right: 89 + 90 + 91 + 96  
-(Average across these channels to make sure that individual variability is taken into account)  
+  * Right: 89 + 90 + 91 + 96    
 
-Identify the peak as the most negative point at both sides, and measure the *latency* of this peak. The *amplitude* was measured as the average voltage within the 120-220 time window.   
+So, firstly, an average across these channels to make sure that individual variability is taken into account. 
 
-Mainly, an ANOVA would be run separately on the *latency* and the *amplitude* of the N170 using:  
+Secondly and mainly, an ANOVA would be run separately on the *latency* and the *amplitude* of the N170 using: 
   * hemisphere (left, right),  
   * gender (male, female), and  
   * face orientation (upright, inverted)   
