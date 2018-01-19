@@ -1,0 +1,280 @@
+---
+title: "Statistical Analysis of the N170"
+author: "Ling"
+date: "1/7/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(tidyverse)
+library(knitr) # kable
+library(gplots) # plot means with error bar
+
+```
+
+## Executive Summary   
+
+Dataset is from this term's EEG course, 11 participants' N170 data included. Data was recorged from classic face recognition experiment, which has 2 variables and 4 conditions: `gender (female vs. male)` and `face orientation (upright vs. inverted)`.     
+
+Brain region was used as a constrain to measure the N170 over the areas where it is expected to occur:  
+  * Left: 58 + 59 + 65 + 69  
+  * Right: 89 + 90 + 91 + 96  
+(Average across these channels to make sure that individual variability is taken into account)  
+
+Identify the peak as the most negative point at both sides, and measure the *latency* of this peak. The *amplitude* was measured as the average voltage within the 120-220 time window.   
+
+Mainly, an ANOVA would be run separately on the *latency* and the *amplitude* of the N170 using:  
+  * hemisphere (left, right),  
+  * gender (male, female), and  
+  * face orientation (upright, inverted)   
+      as within-subject factors.    
+
+```{r data import and tidy, include=FALSE}
+# data import 
+N170_ampli <- read_delim("~/Desktop/Ling_R_final/N170_amplitude.csv", delim = ";")
+N170_latency <- read_delim("~/Desktop/Ling_R_final/N170_latency.csv", delim = ";")
+
+# tidy amplitude dataset 
+tidy_N170_ampli <- N170_ampli %>%
+  # average on left & right hemisphere electrodes
+  transmute(female_inv_L = (Female_inv_L58 + Female_inv_L59 + Female_inv_L65 + Female_inv_L69)/4,
+         female_inv_R = (Female_inv_R89 + Female_inv_R90 + Female_inv_R91 + Female_inv_R96)/4,
+         female_up_L = (Female_up_L58 + Female_up_L59 + Female_up_L65 + Female_up_L69)/4,
+         female_up_R = (Female_up_R89 + Female_up_R90 + Female_up_R91 + Female_up_R96)/4,
+         male_inv_L = (Male_inv_L58 + Male_inv_L59 + Male_inv_L65 + Male_inv_L69)/4,
+         male_inv_R = (Male_inv_R89 + Male_inv_R90 + Male_inv_R91 + Male_inv_R96)/4,
+         male_up_L = (Male_up_L58 + Male_up_L59 + Male_up_L65 + Male_up_L69)/4,
+         male_up_R = (Male_up_R89 + Male_up_R90 + Male_up_R91 + Male_up_R96)/4) %>%   
+  gather(key = gender_faceOri_hemi, value = amplitude, female_inv_L:male_up_R, factor_key = TRUE) %>% 
+  separate(col = gender_faceOri_hemi, into = c("gender", "face_ori", "hemisphere"))
+
+# tidy latency dataset 
+latency <- N170_latency %>%
+  transmute(female_inv_L = (Female_inv_L58 + Female_inv_L59 + Female_inv_L65 + Female_inv_L69)/4,
+            female_inv_R = (Female_inv_R89 + Female_inv_R90 + Female_inv_R91 + Female_inv_R96)/4,
+            female_up_L = (Female_up_L58 + Female_up_L59 + Female_up_L65 + Female_up_L69)/4,
+            female_up_R = (Female_up_R89 + Female_up_R90 + Female_up_R91 + Female_up_R96)/4,
+            male_inv_L = (Male_inv_L58 + Male_inv_L59 + Male_inv_L65 + Male_inv_L69)/4,
+            male_inv_R = (Male_inv_R89 + Male_inv_R90 + Male_inv_R91 + Male_inv_R96)/4,
+            male_up_L = (Male_up_L58 + Male_up_L59 + Male_up_L65 + Male_up_L69)/4,
+            male_up_R = (Male_up_R89 + Male_up_R90 + Male_up_R91 + Male_up_R96)/4) %>%
+  gather(key = gender_faceOri_hemi, value = latency, female_inv_L:male_up_R, factor_key = TRUE) %>% 
+  separate(col = gender_faceOri_hemi, into = c("gender", "face_ori", "hemisphere")) %>% 
+  select(latency)
+
+# add latency column 
+N170_total <- cbind(latency, tidy_N170_ampli) 
+
+```
+
+## Descritives Statistics  
+
+```{r descritives stat, echo=FALSE}
+# descritives stat for amplitude 
+desc_ampli <- N170_ampli %>%
+  # average on left & right hemisphere electrodes
+  transmute(female_inv_L = (Female_inv_L58 + Female_inv_L59 + Female_inv_L65 + Female_inv_L69)/4,
+         female_inv_R = (Female_inv_R89 + Female_inv_R90 + Female_inv_R91 + Female_inv_R96)/4,
+         female_up_L = (Female_up_L58 + Female_up_L59 + Female_up_L65 + Female_up_L69)/4,
+         female_up_R = (Female_up_R89 + Female_up_R90 + Female_up_R91 + Female_up_R96)/4,
+         male_inv_L = (Male_inv_L58 + Male_inv_L59 + Male_inv_L65 + Male_inv_L69)/4,
+         male_inv_R = (Male_inv_R89 + Male_inv_R90 + Male_inv_R91 + Male_inv_R96)/4,
+         male_up_L = (Male_up_L58 + Male_up_L59 + Male_up_L65 + Male_up_L69)/4,
+         male_up_R = (Male_up_R89 + Male_up_R90 + Male_up_R91 + Male_up_R96)/4) %>%   
+  gather(key = gender_faceOri_hemi, value = amplitude, female_inv_L:male_up_R, factor_key = TRUE) %>% 
+  group_by(gender_faceOri_hemi) %>% 
+  summarise(N=length(amplitude),
+            Mean=mean(amplitude, na.rm=TRUE), 
+            SD=sd(amplitude, na.rm=TRUE), 
+            Min=min(amplitude, na.rm=TRUE), 
+            Max=max(amplitude, na.rm=TRUE), 
+            SEM = sd(amplitude)/sqrt(length(amplitude)),
+            '% Missing'=100*length(which(is.na(amplitude)))/n())
+
+kable(desc_ampli, digits=2, format="pandoc", caption="Table 1: Descriptive Statistics for N170 Amplitude")
+
+# descritives stat for latency
+desc_latency <- N170_latency %>%
+  transmute(female_inv_L = (Female_inv_L58 + Female_inv_L59 + Female_inv_L65 + Female_inv_L69)/4,
+            female_inv_R = (Female_inv_R89 + Female_inv_R90 + Female_inv_R91 + Female_inv_R96)/4,
+            female_up_L = (Female_up_L58 + Female_up_L59 + Female_up_L65 + Female_up_L69)/4,
+            female_up_R = (Female_up_R89 + Female_up_R90 + Female_up_R91 + Female_up_R96)/4,
+            male_inv_L = (Male_inv_L58 + Male_inv_L59 + Male_inv_L65 + Male_inv_L69)/4,
+            male_inv_R = (Male_inv_R89 + Male_inv_R90 + Male_inv_R91 + Male_inv_R96)/4,
+            male_up_L = (Male_up_L58 + Male_up_L59 + Male_up_L65 + Male_up_L69)/4,
+            male_up_R = (Male_up_R89 + Male_up_R90 + Male_up_R91 + Male_up_R96)/4) %>%
+  gather(key = gender_faceOri_hemi, value = latency, female_inv_L:male_up_R, factor_key = TRUE) %>% 
+  group_by(gender_faceOri_hemi) %>% 
+  summarise(N=length(latency),
+            Mean=mean(latency, na.rm=TRUE), 
+            SD=sd(latency, na.rm=TRUE), 
+            Min=min(latency, na.rm=TRUE), 
+            Max=max(latency, na.rm=TRUE), 
+            SEM = sd(latency)/sqrt(length(latency)),
+            '% Missing'=100*length(which(is.na(latency)))/n())
+
+kable(desc_latency, digits=2, format="pandoc", caption="Table 2: Descriptive Statistics for N170 Latency")
+```
+
+## EDA Plots  
+
+### Amplitude and latency interaction plot   
+```{r plot1, echo=FALSE}
+# wonder the relation between amplitude and latency, just for fun
+N170_total %>%
+  ggplot() +
+  aes(x =latency, y = amplitude, color = gender, size = hemisphere, label = face_ori) +
+  geom_point(alpha = 0.4) +
+  theme_bw() +
+  ggtitle("Interaction between Amplitude and Latency")
+```
+
+### Amplitude plot    
+```{r plot amplitude, echo=FALSE}
+# ok, seriously plot
+desc_ampli %>% 
+  separate(col = gender_faceOri_hemi, into = c("gender", "face_orientation", "hemisphere")) %>% 
+  ggplot() +
+  aes(x = face_orientation, y = Mean, fill = face_orientation) +
+  geom_bar(position = position_dodge(), stat = "identity", width = .5) +
+  geom_errorbar(aes(ymin = Mean - SEM, ymax = Mean + SEM), width = .1, position = position_dodge(.9)) +
+  facet_grid(~gender + hemisphere) +
+  ylab("Voltage(µV)") +
+  theme_bw() + 
+  ggtitle(paste("Amplitude for various face orientation\n(bars indicating SEM, N=", desc_ampli$N, ")"))
+```
+
+### Latency plot       
+```{r plot latency, echo=FALSE}
+desc_latency %>% 
+  separate(col = gender_faceOri_hemi, into = c("gender", "face_orientation", "hemisphere")) %>% 
+  ggplot() +
+  aes(x = face_orientation, y = Mean, fill = face_orientation) +
+  geom_bar(position = position_dodge(), stat = "identity", width = .5) +
+  geom_errorbar(aes(ymin = Mean - SEM, ymax = Mean + SEM), width = .1, position = position_dodge(.9)) +
+  facet_grid(~gender + hemisphere) +
+  ylab("Latency (ms)") +
+  theme_bw() + 
+  ggtitle(paste("Latency for various face orientation\n(bars indicating SEM, N=", desc_latency$N, ")"))
+```
+
+## Inferential Analysis  
+
+### ANOVA on Amplitude   
+
+1. **Two-way interactions plots**  
+    A visual way to see hether different combinations of the levels of the factors differently affect the average amplitude.  
+    
+```{r ampli two way interaction plot, echo=FALSE}
+# plot two way interaction
+am <- par(mfrow = c(3, 1))
+with(N170_total, {
+  interaction.plot(gender, face_ori, amplitude)
+  interaction.plot(gender, hemisphere, amplitude)
+  interaction.plot(face_ori, hemisphere, amplitude)
+}
+)
+par(am)
+```
+  
+There may be an interaction between `face orientaion` and `hemisphere`, meaning that `face orientaion` might affect the `amplitude` differently based on whether it is combined with left or right hemisphere.   
+
+2. **Fit a Model**  
+   Build a full model to see whether the differences between means plotted are significant or not.  
+```{r ampli full model, echo=FALSE}
+# amplitude ANOVA
+ampli_model <- lm(amplitude ~ gender * face_ori * hemisphere, data = N170_total)
+ampli_anova <- anova(ampli_model)
+kable(ampli_anova, digits=2, format="pandoc", caption="Table 3: ANOVA on N170 Amplitude")
+```
+Only main effect of `face orientation` is significant, F(1, 80) = 11.62, p < .001.  
+
+3. **Diagnostic plots**  
+  
+```{r ampli diagnostic plot, echo=FALSE}
+#1 get full model again
+m1 <- aov(amplitude ~ gender * face_ori * hemisphere, data = N170_total)
+# Residual analysis of 3-way Anova
+op <-  par(mfrow = c(2, 2))
+plot(m1)
+par(op)
+```
+   
+4. **Model Update**  
+   4.1 Firstly, remove 3-way interaction  
+   4.2 Then, remove 2-way interaction  
+   4.3 Check if the three removed effects together are still not significant  
+   4.4 Obtain a final model with significant effect only  
+```{r ampli model update, echo=FALSE}
+## model update
+#2 remove 3-way interaction, use updata() 
+m2 <- update(m1, . ~ . - gender:face_ori:hemisphere)
+summary(m2)
+
+#3 remove 2-way interaction, always use updata()
+m3 <- update(m2, .~gender+face_ori+hemisphere)
+summary(m3)
+
+#4 check if the three removed effects together are still not significant using anova()
+anova(m2, m3) # not significant
+
+#5 obtain the final model with significant effects only
+final_m <- aov(amplitude ~ face_ori, data = N170_total)
+summary(final_m)
+
+```
+5. **Visualise the results**   
+```{r ampli line plot result, echo=FALSE}
+# visualizing results
+attach(N170_total)
+
+# if there's interaction effect
+# interaction.plot(face_ori, gender, amplitude, type="b", col=c(1:3), 
+#   	leg.bty="o", leg.bg="beige", lwd=2, pch=c(18,24,22),	
+#    xlab="Face Orientation", 
+#    ylab="Amplitude", 
+#    main="Interaction Plot")
+
+# plot means with error bars
+plotmeans(amplitude ~ face_ori, xlab="Face Orientation",
+  ylab="Amplitude", main="Mean Plot\nwith 95% CI")
+```
+
+### ANOVA on Latency   
+
+1. **Two-way interactions plots**  
+```{r late two way interaction plot, echo=FALSE}
+# plot two way interaction
+am <- par(mfrow = c(3, 1))
+with(N170_total, {
+  interaction.plot(gender, face_ori, latency)
+  interaction.plot(gender, hemisphere, latency)
+  interaction.plot(face_ori, hemisphere, latency)
+}
+)
+par(am)
+```
+There may be two interactions between `face orientaion` vs. `gender`, and `face orientaion` vs. `hemisphere`.   
+
+2. **Fit a Model**  
+   Build a full model to see whether the differences between means plotted are significant or not.  
+```{r late full model, echo=FALSE}
+# latency ANOVA
+late_model <- lm(latency ~ gender * face_ori * hemisphere, data = N170_total)
+late_anova <- anova(ampli_model)
+kable(late_anova, digits=2, format="pandoc", caption="Table 4: ANOVA on N170 Latency")
+```
+  
+No significant results were found.    
+
+
+## Conclusion  
+
+Mainly, a 3-way within-subject ANOVA was run separately on the *amplitude* and *latency* of the N170. Only the main effect of `face orientation` on *amplitude* was found,  F(1, 80) = 11.62, p < .001, suggesting `face orientation` has an impact on *amplitude*. Furthermore, N170 shows sensitivity to human face inversion, which is in line with previous findings.
+
+
+
+
