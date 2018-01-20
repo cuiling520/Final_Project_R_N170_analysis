@@ -71,7 +71,9 @@ N170_total <- cbind(latency, tidy_N170_ampli)
 
 ```
 
-## Descritives Statistics  
+## Descritives Statistics   
+
+Extracting contidition means for amplitude and latency, respectively.  
 
 ```{r descritives stat, echo=FALSE}
 # descritives stat for amplitude 
@@ -88,7 +90,7 @@ desc_ampli <- N170_ampli %>%
   gather(key = gender_faceOri_hemi, value = amplitude, female_inv_L:male_up_R, factor_key = TRUE) %>% 
   group_by(gender_faceOri_hemi) %>% 
   summarise(N=length(amplitude),
-            Mean=mean(amplitude, na.rm=TRUE), 
+            Mean_amplitude=mean(amplitude, na.rm=TRUE), 
             SD=sd(amplitude, na.rm=TRUE), 
             Min=min(amplitude, na.rm=TRUE), 
             Max=max(amplitude, na.rm=TRUE), 
@@ -110,7 +112,7 @@ desc_latency <- N170_latency %>%
   gather(key = gender_faceOri_hemi, value = latency, female_inv_L:male_up_R, factor_key = TRUE) %>% 
   group_by(gender_faceOri_hemi) %>% 
   summarise(N=length(latency),
-            Mean=mean(latency, na.rm=TRUE), 
+            Mean_latency=mean(latency, na.rm=TRUE), 
             SD=sd(latency, na.rm=TRUE), 
             Min=min(latency, na.rm=TRUE), 
             Max=max(latency, na.rm=TRUE), 
@@ -139,13 +141,13 @@ N170_total %>%
 desc_ampli %>% 
   separate(col = gender_faceOri_hemi, into = c("gender", "face_orientation", "hemisphere")) %>% 
   ggplot() +
-  aes(x = face_orientation, y = Mean, fill = face_orientation) +
+  aes(x = face_orientation, y = Mean_amplitude, fill = face_orientation) +
   geom_bar(position = position_dodge(), stat = "identity", width = .5) +
-  geom_errorbar(aes(ymin = Mean - SEM, ymax = Mean + SEM), width = .1, position = position_dodge(.9)) +
+  geom_errorbar(aes(ymin = Mean_amplitude - SEM, ymax = Mean_amplitude + SEM), width = .1, position = position_dodge(.9)) +
   facet_grid(~gender + hemisphere) +
   ylab("Voltage(µV)") +
   theme_bw() + 
-  ggtitle(paste("Amplitude for various face orientation\n(bars indicating SEM, N=", desc_ampli$N, ")"))
+  ggtitle(paste("Amplitude for various face orientation\n(bars indicating SEM, N =", desc_ampli$N, ")"))
 ```
 
 ### Latency plot       
@@ -153,13 +155,13 @@ desc_ampli %>%
 desc_latency %>% 
   separate(col = gender_faceOri_hemi, into = c("gender", "face_orientation", "hemisphere")) %>% 
   ggplot() +
-  aes(x = face_orientation, y = Mean, fill = face_orientation) +
+  aes(x = face_orientation, y = Mean_latency, fill = face_orientation) +
   geom_bar(position = position_dodge(), stat = "identity", width = .5) +
-  geom_errorbar(aes(ymin = Mean - SEM, ymax = Mean + SEM), width = .1, position = position_dodge(.9)) +
+  geom_errorbar(aes(ymin = Mean_latency - SEM, ymax = Mean_latency + SEM), width = .1, position = position_dodge(.9)) +
   facet_grid(~gender + hemisphere) +
   ylab("Latency (ms)") +
   theme_bw() + 
-  ggtitle(paste("Latency for various face orientation\n(bars indicating SEM, N=", desc_latency$N, ")"))
+  ggtitle(paste("Latency for various face orientation\n(bars indicating SEM, N =", desc_latency$N, ")"))
 ```
 
 ## Inferential Analysis  
@@ -232,18 +234,13 @@ summary(final_m)
 # visualizing results
 attach(N170_total)
 
-# if there's interaction effect
-# interaction.plot(face_ori, gender, amplitude, type="b", col=c(1:3), 
-#   	leg.bty="o", leg.bg="beige", lwd=2, pch=c(18,24,22),	
-#    xlab="Face Orientation", 
-#    ylab="Amplitude", 
-#    main="Interaction Plot")
-
 # plot means with error bars
 plotmeans(amplitude ~ face_ori, xlab="Face Orientation",
   ylab="Amplitude", main="Mean Plot\nwith 95% CI")
 ```
-
+  
+As in the mean plot, upright face elicited larger N170 amplitude than inverted face. 
+  
 ### ANOVA on Latency   
 
 1. **Two-way interactions plots**  
@@ -258,6 +255,7 @@ with(N170_total, {
 )
 par(am)
 ```
+  
 There may be two interactions between `face orientaion` vs. `gender`, and `face orientaion` vs. `hemisphere`.   
 
 2. **Fit a Model**  
