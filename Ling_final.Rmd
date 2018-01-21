@@ -2,7 +2,9 @@
 title: "Statistical Analysis of the N170"
 author: "Ling"
 date: "1/7/2018"
-output: html_document
+output:
+  html_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -12,6 +14,7 @@ library(readxl)
 library(tidyverse)
 library(knitr) # kable
 library(gplots) # plot means with error bar
+library(sjstats) # effect size
 
 ```
 
@@ -35,8 +38,8 @@ Secondly and mainly, an ANOVA would be run separately on the *latency* and the *
 
 ```{r data import and tidy, include=FALSE}
 # data import 
-N170_ampli <- read_delim("~/Desktop/Ling_R_final/N170_amplitude.csv", delim = ";")
-N170_latency <- read_delim("~/Desktop/Ling_R_final/N170_latency.csv", delim = ";")
+N170_ampli <- read_delim("~/Desktop//Ling_R_final/Final_Project_R_N170_analysis.git/N170_Data/N170_amplitude.csv", delim = ";")
+N170_latency <- read_delim("~/Desktop/Ling_R_final/Final_Project_R_N170_analysis.git/N170_Data/N170_latency.csv", delim = ";")
 
 # tidy amplitude dataset 
 tidy_N170_ampli <- N170_ampli %>%
@@ -188,14 +191,18 @@ There may be an interaction between `face orientaion` and `hemisphere`, meaning 
 2. **Fit a Model**  
    Build a full model to see whether the differences between means plotted are significant or not.  
 ```{r ampli full model, echo=FALSE}
+# normality test
+shapiro.test(N170_total$amplitude) # p = 0.2, normally distributed
+
 # amplitude ANOVA
 ampli_model <- lm(amplitude ~ gender * face_ori * hemisphere, data = N170_total)
 ampli_anova <- anova(ampli_model)
 kable(ampli_anova, digits=2, format="pandoc", caption="Table 3: ANOVA on N170 Amplitude")
 ```
-Only main effect of `face orientation` is significant, F(1, 80) = 11.62, p < .001.  
+  
+Normality test showed amplitude data is normally distributed (p>.05), hence, a classical ANOVA was performed. Results showed that only main effect of `face orientation` is significant, F(1, 80) = 11.62, p < .001.  
 
-3. **Diagnostic plots**  
+3. **Residuals Diagnostic plots**  
   
 ```{r ampli diagnostic plot, echo=FALSE}
 #1 get full model again
@@ -204,7 +211,12 @@ m1 <- aov(amplitude ~ gender * face_ori * hemisphere, data = N170_total)
 op <-  par(mfrow = c(2, 2))
 plot(m1)
 par(op)
+
+# normality test on residuals
+shapiro.test(resid(m1)) # normal
 ```
+  
+  Based on both diagnotistic plots and Shapiro test result (p>.05), residuals are normally distributed. 
    
 4. **Model Update**  
    4.1 Firstly, remove 3-way interaction  
@@ -228,7 +240,13 @@ anova(m2, m3) # not significant
 final_m <- aov(amplitude ~ face_ori, data = N170_total)
 summary(final_m)
 
+# effect size for the full model
+es_ampli <- anova_stats(m1) # nice table with effect size and p value
+kable(es_ampli, digits=2, format="pandoc", caption="Table 4: ANOVA on N170 Amplitude with Effect Size")
 ```
+    
+In the end, we obtain the final model with `face orientation` only, and it has a median effect size (eta-sqared = 0.13). Meaning that 13% of the total variability in the `amplitude` that is accounted for by the variation in the `face orientation`. From above effect size results, the other variables or interactions have small or very low effect size.    
+
 5. **Visualise the results**   
 ```{r ampli line plot result, echo=FALSE}
 # visualizing results
@@ -261,19 +279,30 @@ There may be two interactions between `face orientaion` vs. `gender`, and `face 
 2. **Fit a Model**  
    Build a full model to see whether the differences between means plotted are significant or not.  
 ```{r late full model, echo=FALSE}
-# latency ANOVA
-late_model <- lm(latency ~ gender * face_ori * hemisphere, data = N170_total)
-late_anova <- anova(ampli_model)
-kable(late_anova, digits=2, format="pandoc", caption="Table 4: ANOVA on N170 Latency")
+# normality test
+shapiro.test(N170_total$latency) # p<.001, not normal
+
+# data transform
+N170_total <- N170_total %>% 
+  mutate(log_latency = log(latency))
+
+# log_latency ANOVA
+late_model <- lm(log_latency ~ gender * face_ori * hemisphere, data = N170_total)
+late_anova <- anova(late_model)
+kable(late_anova, digits=2, format="pandoc", caption="Table 5: ANOVA on N170 Latency")
+
+# even there's no significant results, effect size can be infomative
+es_late <- anova_stats(late_anova) 
+kable(es_late, digits=2, format="pandoc", caption="Table 6: ANOVA on N170 Latency with Effect Size")
+
 ```
   
-No significant results were found.    
+Normality test showed amplitude data is not normally distributed (p>.05), hence, data needed to be transformed. An ANOVA was performed on log-latency, but no significant results were found. Even though there's no significant results, effect size can be infomative. For example, `hemisphere` reached a small effect size (etasq = .03).    
 
 
 ## Conclusion  
 
 Mainly, a 3-way within-subject ANOVA was run separately on the *amplitude* and *latency* of the N170. Only the main effect of `face orientation` on *amplitude* was found,  F(1, 80) = 11.62, p < .001, suggesting `face orientation` has an impact on *amplitude*. Furthermore, N170 shows sensitivity to human face inversion, which is in line with previous findings.
-
 
 
 
