@@ -51,7 +51,8 @@ tidy_N170_ampli <- N170_ampli %>%
          male_inv_L = (Male_inv_L58 + Male_inv_L59 + Male_inv_L65 + Male_inv_L69)/4,
          male_inv_R = (Male_inv_R89 + Male_inv_R90 + Male_inv_R91 + Male_inv_R96)/4,
          male_up_L = (Male_up_L58 + Male_up_L59 + Male_up_L65 + Male_up_L69)/4,
-         male_up_R = (Male_up_R89 + Male_up_R90 + Male_up_R91 + Male_up_R96)/4) %>%   
+         male_up_R = (Male_up_R89 + Male_up_R90 + Male_up_R91 + Male_up_R96)/4,
+         Subject = Subject) %>%   
   gather(key = gender_faceOri_hemi, value = amplitude, female_inv_L:male_up_R, factor_key = TRUE) %>% 
   separate(col = gender_faceOri_hemi, into = c("gender", "face_ori", "hemisphere"))
 
@@ -303,6 +304,54 @@ Normality test showed amplitude data is not normally distributed (p>.05), hence,
 ## Conclusion  
 
 Mainly, a 3-way within-subject ANOVA was run separately on the *amplitude* and *latency* of the N170. Only the main effect of `face orientation` on *amplitude* was found,  F(1, 80) = 11.62, p < .001, suggesting `face orientation` has an impact on *amplitude*. Furthermore, N170 shows sensitivity to human face inversion, which is in line with previous findings.
+
+
+```{r ezANOVA, include=FALSE}
+# try another anova method, for comparison
+library(ez) # the pkg just for experimental design analysis, how handy it is!
+
+# transfer character variables to factor variables (somehow ezANOVA needs fctr variables)
+N170_total <- N170_total %>% 
+  mutate(Subject = as.factor(Subject),
+         gender = as.factor(gender),
+         face_ori = as.factor(face_ori),
+         hemisphere = as.factor(hemisphere)
+         )
+
+#ANOVA on repeated measures factors
+with_anova_amplitude <- ezANOVA(data = N170_total,                
+                          dv = amplitude, # dependent variable
+                          wid = Subject, # subject ID, seems its needed
+                          within = .(gender, face_ori, hemisphere), #within subjects variables to include in the model         
+                          detailed = T) # print more detailed stuff
+print(with_anova_amplitude)
+
+# anova on latency
+with_anova_latency <- ezANOVA(data = N170_total,                
+                          dv = latency,
+                          wid = Subject,
+                          within = .(gender, face_ori, hemisphere),         
+                          detailed = T) 
+print(with_anova_latency)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
